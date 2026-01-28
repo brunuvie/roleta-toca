@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Roleta TOCA Music Bar</title>
+
+<style>
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: #fff;
+  }
+
+  .wheel-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+  }
+
+  canvas {
+    border-radius: 50%;
+  }
+
+  #logoCenter {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 16px;
+    background: gold;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  button:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+
+  @keyframes glow {
+    0% { filter: drop-shadow(0 0 5px gold); }
+    50% { filter: drop-shadow(0 0 25px gold); }
+    100% { filter: drop-shadow(0 0 5px gold); }
+  }
+
+  .glowing {
+    animation: glow 0.8s infinite;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="wheel-container">
+  <canvas id="wheel" width="400" height="400"></canvas>
+  <img src="logo-toca.png" id="logoCenter">
+</div>
+
+<button id="spinBtn">GIRAR ROLETA</button>
+
+<script>
+  const prizes = [
+    "Chopp Grátis",
+    "10% OFF",
+    "Dose Surpresa",
+    "Não foi dessa vez",
+    "Madonna",
+    "Vale Molas"
+  ];
+
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+  const btn = document.getElementById("spinBtn");
+  const logo = document.getElementById("logoCenter");
+
+  const center = canvas.width / 2;
+  const radius = center - 10;
+  const angleStep = (2 * Math.PI) / prizes.length;
+
+  let rotation = 0;
+  let spinning = false;
+
+  function drawWheel(rot = 0) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    prizes.forEach((text, i) => {
+      const start = rot + i * angleStep;
+      const end = start + angleStep;
+
+      ctx.beginPath();
+      ctx.moveTo(center, center);
+      ctx.arc(center, center, radius, start, end);
+      ctx.fillStyle = i % 2 === 0 ? "#111" : "#1c1c1c";
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(start + angleStep / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#FFD700";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(text, radius - 15, 6);
+      ctx.restore();
+    });
+  }
+
+  drawWheel();
+
+  function startGlow() {
+    logo.classList.add("glowing");
+  }
+
+  function stopGlow() {
+    logo.classList.remove("glowing");
+  }
+
+  function lockFor24h() {
+    localStorage.setItem("wheelLock", Date.now());
+  }
+
+  function isLocked() {
+    const lock = localStorage.getItem("wheelLock");
+    if (!lock) return false;
+    return Date.now() - lock < 24 * 60 * 60 * 1000;
+  }
+
+  function spinWheel() {
+    if (spinning || isLocked()) return;
+
+    spinning = true;
+    btn.disabled = true;
+    startGlow();
+
+    let spinTime = 0;
+    const maxTime = 3500;
+
+    const spin = setInterval(() => {
+      rotation += 0.25;
+      drawWheel(rotation);
+      spinTime += 30;
+
+      if (spinTime >= maxTime) {
+        clearInterval(spin);
+        stopGlow();
+        lockFor24h();
+        spinning = false;
+        alert("Confira seu prêmio na roleta 🎉");
+      }
+    }, 30);
+  }
+
+  btn.addEventListener("click", () => {
+    if (isLocked()) {
+      alert("Você já participou. Volte em 24h!");
+      return;
+    }
+    spinWheel();
+  });
+
+  if (isLocked()) {
+    btn.disabled = true;
+  }
+</script>
+
+</body>
+</html>
